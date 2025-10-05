@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interstellar Interface - NASA Image Explorer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            max-width: 400px;
+            height: auto;
+            margin: 0 auto 10px;
+            display: block;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #aaa;
+        }
+
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .content-box {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .content-box h2 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 2em;
+        }
+
+        .content-box h3 {
+            color: #7b2ff7;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .user-list, .issue-list, .solution-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .user-list li, .issue-list li, .solution-list li {
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .user-list li:before, .issue-list li:before, .solution-list li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        #viewer-container, #comparison-container {
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        #openseadragon-viewer {
+            width: 100%;
+            height: 600px;
+        }
+
+        #comparison-viewer {
+            width: 100%;
+            height: 600px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            background: rgba(0, 212, 255, 0.2);
+            border: 2px solid #00d4ff;
+            border-radius: 8px;
+            color: #00d4ff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 212, 255, 0.4);
+            transform: scale(1.05);
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00d4ff;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .search-box::placeholder {
+            color: #aaa;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .image-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .image-card:hover {
+            transform: translateY(-5px);
+            border-color: #00d4ff;
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .image-card-info {
+            padding: 15px;
+        }
+
+        .image-card-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #00d4ff;
+        }
+
+        .image-card-desc {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .feature-card h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .annotation-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .annotation-btn {
+            padding: 8px 16px;
+            background: rgba(123, 47, 247, 0.3);
+            border: 2px solid #7b2ff7;
+            border-radius: 8px;
+            color: #7b2ff7;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .annotation-btn:hover, .annotation-btn.active {
+            background: rgba(123, 47, 247, 0.6);
+            color: white;
+        }
+
+        .annotation-marker {
+            font-size: 24px;
+            pointer-events: none;
+            line-height: 1;
+        }
+
+        .annotation-rectangle {
+            border: 3px solid #00d4ff;
+            background: rgba(0, 212, 255, 0.2);
+            pointer-events: none;
+        }
+
+        .annotation-label {
+            background: rgba(123, 47, 247, 0.9);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: 2px solid #fff;
+            font-size: 14px;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .label-tracker {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .label-tracker h4 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .label-item {
+            background: rgba(123, 47, 247, 0.3);
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 3px solid #7b2ff7;
+        }
+
+        .info-banner {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(123, 47, 247, 0.2) 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #00d4ff;
+            margin-bottom: 20px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            margin-top: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+        }
+
+        .comparison-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .comparison-split {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="logo.png" alt="Interstellar Interface" class="logo">
+            <p class="subtitle">NASA Image Explorer - Advanced Space Imagery Analysis Platform</p>
+            <p style="font-size: 0.9em; color: #888; margin-top: 10px;">Explore Massive Space Image Datasets with Advanced Zoom & Analysis</p>
+        </header>
+
+        <nav>
+            <button class="nav-btn active" onclick="showPage('home')">Home</button>
+            <button class="nav-btn" onclick="showPage('about')">About</button>
+            <button class="nav-btn" onclick="showPage('viewer')">Image Viewer</button>
+            <button class="nav-btn" onclick="showPage('comparison')">Comparison Tool</button>
+        </nav>
+
+        <!-- HOME PAGE -->
+        <div id="home" class="page active">
+            <div class="content-box">
+                <h2>🚀 Welcome to Our NASA Hackathon Project</h2>
+                <p>Welcome to our NASA Hackathon project! This platform is designed for researchers, students, space enthusiasts, and citizen scientists who want to explore the incredible high-resolution images captured by NASA missions. Space telescopes and probes provide trillions of pixels of data that are far too large to study using ordinary tools. Our website makes this data more accessible by allowing users to zoom, explore, and analyze these vast images in an interactive way.</p>
+                <p style="margin-top: 15px;">The site includes a time selection page, an image exploration tool, AI-generated summaries of patterns and features, and a community review page where users can share their findings. By combining human curiosity with advanced technology, we aim to create a powerful tool for discovery.</p>
+            </div>
+
+            <div class="content-box">
+                <h2>👥 Target Users</h2>
+                <p style="margin-bottom: 15px;">This website is targeted towards a broad but specific audience:</p>
+                <ul class="user-list">
+                    <li><strong>Researchers and academics</strong> who want a streamlined way to work with data, images, and resources</li>
+                    <li><strong>Students and learners</strong> who are curious to explore new topics and gain hands-on experience with interactive tools</li>
+                    <li><strong>Space enthusiasts and citizen scientists</strong> who enjoy exploring images, patterns, and scientific concepts outside of formal study</li>
+                    <li><strong>Educators</strong> who may use the platform as a teaching aid to demonstrate concepts in a more engaging way</li>
+                </ul>
+                <p style="margin-top: 15px;">The project is built to serve as a bridge between professional science and public interest. Whether you're a specialist aiming to identify fine details or a casual learner eager to understand more, this site is for you.</p>
+            </div>
+
+            <div class="content-box">
+                <h2>⚠️ Issues to be Fixed</h2>
+                <ul class="issue-list">
+                    <li>Too many pixels to display at once, making analysis extremely difficult</li>
+                    <li>No efficient way to compare different images or the same location over time</li>
+                    <li>Lack of tools to label features and annotate discoveries</li>
+                    <li>Difficulty navigating through gigapixel-scale imagery</li>
+                </ul>
+            </div>
+
+            <div class="content-box">
+                <h2>✨ Our Solution</h2>
+                <ul class="solution-list">
+                    <li><strong>Advanced Zoom Function</strong> - OpenSeadragon integration for smooth, infinite zoom into massive images</li>
+                    <li><strong>Side-by-Side Analysis</strong> - Compare multiple images simultaneously with synchronized navigation</li>
+                    <li><strong>Annotation Tools</strong> - Mark and label interesting features directly on the images</li>
+                    <li><strong>Smart Search</strong> - Find specific features using coordinates, names, or AI-powered descriptions</li>
+                </ul>
+            </div>
+
+            <div class="content-box">
+                <h2>🔬 Research Applications</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h3>Planetary Geology</h3>
+                        <p>Study surface features, crater formations, and geological patterns on Mars, the Moon, and other celestial bodies.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Temporal Studies</h3>
+                        <p>Compare images taken at different times to track changes like dust storms, ice cap variations, and surface evolution.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Deep Space Analysis</h3>
+                        <p>Explore distant galaxies, nebulae, and star formations with unprecedented detail using Hubble and Webb telescope imagery.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEWER PAGE -->
+        <div id="viewer" class="page">
+            <div class="content-box">
+                <h2>🔍 Interactive Image Viewer</h2>
+                <p>Zoom into NASA's massive image datasets with smooth, infinite zoom capabilities. Use OpenSeadragon technology to explore billions of pixels.</p>
+                
+                <div class="info-banner">
+                    <strong>Demo Mode:</strong> This viewer demonstrates the zoom capabilities. In production, it would connect to NASA's actual image datasets (EarthData, Lunar Reconnaissance Orbiter, Mars Reconnaissance Orbiter, etc.)
+                </div>
+
+                <input type="text" class="search-box" placeholder="Search by coordinates, feature name, or description (e.g., 'Olympus Mons', '45.2N 120.4W')">
+
+                <div class="controls">
+                    <button class="control-btn" onclick="zoomIn()">🔍 Zoom In</button>
+                    <button class="control-btn" onclick="zoomOut()">🔍 Zoom Out</button>
+                    <button class="control-btn" onclick="resetView()">↺ Reset View</button>
+                    <button class="control-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+                </div>
+
+                <div class="annotation-controls">
+                    <button class="annotation-btn" onclick="enableAnnotation('point')">📍 Mark Point</button>
+                    <button class="annotation-btn" onclick="enableAnnotation('rectangle')">▢ Draw Rectangle</button>
+                    <button class="annotation-btn" onclick="enableAnnotation('label')">🏷️ Add Label</button>
+                    <button class="annotation-btn" onclick="clearAnnotations()">🗑️ Clear All</button>
+                </div>
+
+                <div class="label-tracker" id="label-tracker">
+                    <h4>📋 Label Tracker</h4>
+                    <div id="label-list">
+                        <p style="color: #aaa; font-size: 0.9em;">No labels added yet</p>
+                    </div>
+                </div>
+
+                <div id="viewer-container">
+                    <div id="openseadragon-viewer"></div>
+                </div>
+
+                <div class="content-box">
+                    <h3>Sample NASA Image Datasets</h3>
+                    <div class="image-grid">
+                        <div class="image-card" onclick="loadImage('nebula')">
+                            <img src="CarinaNebula.png" alt="Carina Nebula">
+                            <div class="image-card-info">
+                                <div class="image-card-title">Carina Nebula</div>
+                                <div class="image-card-desc">Hubble Space Telescope deep space imagery</div>
+                            </div>
+                        </div>
+                        <div class="image-card" onclick="loadImage('earth')">
+                            <img src="EarthFromSpace.png" alt="Earth from Space">
+                            <div class="image-card-info">
+                                <div class="image-card-title">Earth from Space</div>
+                                <div class="image-card-desc">Blue Marble - high resolution Earth imagery</div>
+                            </div>
+                        </div>
+                        <div class="image-card" onclick="loadImage('moon')">
+                            <img src="LunarSurface.png" alt="Lunar Surface">
+                            <div class="image-card-info">
+                                <div class="image-card-title">Lunar Surface - LRO</div>
+                                <div class="image-card-desc">Lunar Reconnaissance Orbiter detailed maps</div>
+                            </div>
+                        </div>
+                        <div class="image-card" onclick="loadImage('mars')">
+                            <img src="MarsSurface.png" alt="Mars Surface">
+                            <div class="image-card-info">
+                                <div class="image-card-title">Mars Surface - MRO</div>
+                                <div class="image-card-desc">High-resolution Mars Reconnaissance Orbiter imagery</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPARISON PAGE -->
+        <div id="comparison" class="page">
+            <div class="content-box">
+                <h2>⚖️ Side-by-Side Comparison Tool</h2>
+                <p>Compare two NASA images simultaneously with synchronized zoom and pan. Perfect for temporal analysis and multi-spectral comparisons.</p>
+                
+                <div class="info-banner">
+                    <strong>Use Case:</strong> Compare images of the same location taken at different times, or view the same region in different wavelengths (visible light vs infrared vs thermal).
+                </div>
+
+                <div class="comparison-split">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 style="margin: 0;">Image A</h3>
+                            <button class="control-btn" onclick="document.getElementById('upload-a').click()" style="padding: 8px 16px; font-size: 14px;">📁 Upload Image</button>
+                            <input type="file" id="upload-a" accept="image/*" style="display: none;" onchange="uploadImageToViewer('a', event)">
+                        </div>
+                        <div id="viewer-a" style="width: 100%; height: 400px; background: #000; border-radius: 10px;"></div>
+                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 style="margin: 0;">Image B</h3>
+                            <button class="control-btn" onclick="document.getElementById('upload-b').click()" style="padding: 8px 16px; font-size: 14px;">📁 Upload Image</button>
+                            <input type="file" id="upload-b" accept="image/*" style="display: none;" onchange="uploadImageToViewer('b', event)">
+                        </div>
+                        <div id="viewer-b" style="width: 100%; height: 400px; background: #000; border-radius: 10px;"></div>
+                    </div>
+                </div>
+
+                <div class="content-box" style="margin-top: 20px;">
+                    <h3>Analysis Features</h3>
+                    <p>• Track surface changes over time (ice caps, dust storms, geological activity)</p>
+                    <p>• Compare different spectral bands of the same region</p>
+                    <p>• Overlay annotations and measurements</p>
+                    <p>• Export comparison views for research papers</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABOUT PAGE -->
+        <div id="about" class="page">
+            <div class="content-box">
+                <h2>📋 About This Project</h2>
+                <p>This project was developed with a focus on accessibility, curiosity, and exploration. Behind the work is a commitment to making complex data and information easier to understand and engage with. The aim is not just to build a tool, but to create an environment where people feel encouraged to explore, ask questions, and share their insights.</p>
+                <p style="margin-top: 15px;">The "About" section reflects the motivation behind the website: making knowledge interactive, approachable, and inspiring for everyone.</p>
+                
+                <h3 style="margin-top: 25px;">Who It Is Targeted Towards</h3>
+                <p style="margin-top: 10px;">This website is targeted towards a broad but specific audience:</p>
+                <ul class="solution-list">
+                    <li><strong>Researchers and academics</strong> who want a streamlined way to work with data, images, and resources</li>
+                    <li><strong>Students and learners</strong> who are curious to explore new topics and gain hands-on experience with interactive tools</li>
+                    <li><strong>Space enthusiasts and citizen scientists</strong> who enjoy exploring images, patterns, and scientific concepts outside of formal study</li>
+                    <li><strong>Educators</strong> who may use the platform as a teaching aid to demonstrate concepts in a more engaging way</li>
+                </ul>
+                <p style="margin-top: 15px;">The project is built to serve as a bridge between professional science and public interest. Whether you're a specialist aiming to identify fine details or a casual learner eager to understand more, this site is for you.</p>
+            </div>
+
+            <div class="content-box">
+                <h2>🎯 Project Objectives</h2>
+                <p>Our challenge is to create a platform that allows users to zoom in and out of NASA's massive image datasets, label known features, and discover new patterns. This solution addresses the fundamental problem of making gigapixel and terapixel imagery accessible and explorable.</p>
+                
+                <h3>Key Features</h3>
+                <ul class="solution-list">
+                    <li>Seamless navigation through images containing billions of pixels</li>
+                    <li>Annotation tools for marking and labeling features of interest</li>
+                    <li>Side-by-side comparison with synchronized navigation</li>
+                    <li>Search functionality using coordinates, feature names, or AI descriptions</li>
+                    <li>Support for multiple image formats and data sources</li>
+                </ul>
+            </div>
+
+            <div class="content-box">
+                <h2>💻 Tech Stack</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h3>Frontend</h3>
+                        <p>• HTML5, CSS3, JavaScript<br>
+                        • Responsive design for all devices<br>
+                        • Modern UI with animations</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Image Viewer</h3>
+                        <p>• OpenSeadragon for zoom capabilities<br>
+                        • Optimized for huge NASA images<br>
+                        • Tile-based loading system</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Annotations</h3>
+                        <p>• Simple JS overlay system<br>
+                        • Annotorious library support<br>
+                        • Custom drawing tools</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Future AI Integration</h3>
+                        <p>• TensorFlow.js with MobileNet<br>
+                        • Feature detection<br>
+                        • Smart search capabilities</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-box">
+                <h2>🎯 Target Applications</h2>
+                <h3>Public Science Museums</h3>
+                <p>Interactive displays where visitors can explore space imagery in unprecedented detail, making space science accessible and engaging for all ages.</p>
+                
+                <h3>Academic Research</h3>
+                <p>Researchers can conduct detailed studies of planetary geology, temporal changes, and deep space phenomena with powerful analysis tools.</p>
+                
+                <h3>Educational Institutions</h3>
+                <p>Teachers and students can use the platform to study real NASA data, fostering curiosity and understanding of space exploration.</p>
+            </div>
+
+            <div class="content-box">
+                <h2>🚀 Future Enhancements</h2>
+                <ul class="solution-list">
+                    <li>AI-powered feature detection and classification</li>
+                    <li>Collaborative annotation with multiple users</li>
+                    <li>Integration with more NASA data sources (EarthData, PDS, etc.)</li>
+                    <li>3D terrain visualization from elevation data</li>
+                    <li>Time-lapse animation of temporal changes</li>
+                    <li>Mobile app versions for iOS and Android</li>
+                    <li>API for researchers to programmatically access data</li>
+                </ul>
+            </div>
+
+            <div class="content-box">
+                <h2>👥 Team & Contribution</h2>
+                <p><strong>Team Interstellar Interface</strong> - This hackathon project demonstrates how modern web technologies can make NASA's incredible space imagery more accessible and useful for education, research, and public engagement. The platform prioritizes user-friendliness and practical capabilities for real-world usage.</p>
+                
+                <div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(123, 47, 247, 0.1) 100%); border-radius: 10px; border: 2px solid rgba(0, 212, 255, 0.3);">
+                    <h3 style="color: #00d4ff; margin-bottom: 15px;">🚀 Interstellar Interface</h3>
+                    <p style="color: #aaa; margin-bottom: 15px;">Bridging the gap between massive space datasets and human exploration</p>
+                    
+                    <div style="margin-top: 20px;">
+                        <h4 style="color: #7b2ff7; margin-bottom: 10px;">Team Members:</h4>
+                        <ul style="list-style: none; padding-left: 0;">
+                            <li style="padding: 8px 0; color: #fff;">⭐ Iqra Jannat</li>
+                            <li style="padding: 8px 0; color: #fff;">⭐ Kulsoom Alim</li>
+                            <li style="padding: 8px 0; color: #fff;">⭐ Mohamed Dahir</li>
+                            <li style="padding: 8px 0; color: #fff;">⭐ Temis Manakkal</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>🌌 Interstellar Interface</strong> - NASA Image Explorer Hackathon Project 2025</p>
+            <p style="margin-top: 8px; color: #ddd;">Team: Iqra Jannat • Kulsoom Alim • Mohamed Dahir • Temis Manakkal</p>
+            <p style="margin-top: 8px;">Making Space Imagery Accessible to Everyone</p>
+            <p style="margin-top: 10px; color: #aaa; font-size: 0.9em;">Data sources: NASA EarthData, Mars Reconnaissance Orbiter, Lunar Reconnaissance Orbiter, Hubble Space Telescope</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
+    <script>
+        let viewer = null;
+        let viewerA = null;
+        let viewerB = null;
+        let currentAnnotationMode = null;
+        let annotations = [];
+        let rectangleStart = null;
+        let currentRectangle = null;
+        let labelCounter = 0;
+
+        // Page navigation
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(pageName).classList.add('active');
+            event.target.classList.add('active');
+
+            // Initialize viewers when their pages are shown
+            if (pageName === 'viewer' && !viewer) {
+                initMainViewer();
+            } else if (pageName === 'comparison' && !viewerA) {
+                initComparisonViewers();
+            }
+        }
+
+        // Initialize main OpenSeadragon viewer
+        function initMainViewer() {
+            try {
+                viewer = OpenSeadragon({
+                    id: "openseadragon-viewer",
+                    prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/",
+                    tileSources: {
+                        type: 'image',
+                        url: 'EarthFromSpace.png',
+                        buildPyramid: false
+                    },
+                    showNavigationControl: true,
+                    navigationControlAnchor: OpenSeadragon.ControlAnchor.TOP_RIGHT,
+                    animationTime: 0.5,
+                    blendTime: 0.1,
+                    constrainDuringPan: false,
+                    maxZoomPixelRatio: 2,
+                    minZoomLevel: 0.5,
+                    visibilityRatio: 1,
+                    zoomPerScroll: 2,
+                    timeout: 120000
+                });
+
+                // Add event handlers for annotations using OpenSeadragon's canvas click
+                viewer.addHandler('canvas-click', function(event) {
+                    if (!currentAnnotationMode || currentAnnotationMode === 'rectangle') return;
+
+                    // Prevent default OpenSeadragon behavior
+                    event.preventDefaultAction = true;
+
+                    // Get the viewport point (this stays consistent with zoom/pan)
+                    const viewportPoint = viewer.viewport.pointFromPixel(event.position);
+
+                    if (currentAnnotationMode === 'point') {
+                        addPointMarker(viewportPoint);
+                        // Keep mode active for multiple points
+                    } else if (currentAnnotationMode === 'label') {
+                        const labelText = prompt('Enter label text:');
+                        if (labelText && labelText.trim()) {
+                            addLabel(viewportPoint, labelText.trim());
+                        }
+                        currentAnnotationMode = null;
+                        document.getElementById('openseadragon-viewer').style.cursor = 'default';
+                        document.querySelectorAll('.annotation-btn').forEach(btn => btn.classList.remove('active'));
+                    }
+                });
+
+                // Rectangle drawing with canvas drag
+                viewer.addHandler('canvas-press', function(event) {
+                    if (currentAnnotationMode === 'rectangle') {
+                        event.preventDefaultAction = true;
+                        rectangleStart = viewer.viewport.pointFromPixel(event.position);
+
+                        // Create temporary overlay element
+                        currentRectangle = document.createElement('div');
+                        currentRectangle.className = 'annotation-rectangle';
+                        viewer.addOverlay({
+                            element: currentRectangle,
+                            location: new OpenSeadragon.Rect(rectangleStart.x, rectangleStart.y, 0, 0)
+                        });
+                    }
+                });
+
+                viewer.addHandler('canvas-drag', function(event) {
+                    if (currentAnnotationMode === 'rectangle' && rectangleStart) {
+                        event.preventDefaultAction = true;
+                        const currentPoint = viewer.viewport.pointFromPixel(event.position);
+
+                        const x = Math.min(rectangleStart.x, currentPoint.x);
+                        const y = Math.min(rectangleStart.y, currentPoint.y);
+                        const width = Math.abs(currentPoint.x - rectangleStart.x);
+                        const height = Math.abs(currentPoint.y - rectangleStart.y);
+
+                        if (currentRectangle) {
+                            viewer.updateOverlay(currentRectangle, new OpenSeadragon.Rect(x, y, width, height));
+                        }
+                    }
+                });
+
+                viewer.addHandler('canvas-release', function(event) {
+                    if (currentAnnotationMode === 'rectangle' && rectangleStart) {
+                        const endPoint = viewer.viewport.pointFromPixel(event.position);
+
+                        const x = Math.min(rectangleStart.x, endPoint.x);
+                        const y = Math.min(rectangleStart.y, endPoint.y);
+                        const width = Math.abs(endPoint.x - rectangleStart.x);
+                        const height = Math.abs(endPoint.y - rectangleStart.y);
+
+                        // Only keep rectangle if it has some size
+                        if (width > 0.01 && height > 0.01) {
+                            addRectangle(new OpenSeadragon.Rect(x, y, width, height));
+                        } else if (currentRectangle) {
+                            viewer.removeOverlay(currentRectangle);
+                        }
+
+                        rectangleStart = null;
+                        currentRectangle = null;
+                        // Keep mode active for multiple rectangles
+                    }
+                });
+
+            } catch (error) {
+                console.log('Main viewer initialization error:', error);
+            }
+        }
+
+        // Initialize comparison viewers
+        function initComparisonViewers() {
+            try {
+                viewerA = OpenSeadragon({
+                    id: "viewer-a",
+                    prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/",
+                    tileSources: {
+                        type: 'image',
+                        url: 'BeforeLake.jpg',
+                        buildPyramid: false
+                    },
+                    showNavigationControl: true,
+                    animationTime: 0.5
+                });
+
+                viewerB = OpenSeadragon({
+                    id: "viewer-b",
+                    prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/",
+                    tileSources: {
+                        type: 'image',
+                        url: 'AfterLake.jpg',
+                        buildPyramid: false
+                    },
+                    showNavigationControl: true,
+                    animationTime: 0.5
+                });
+            } catch (error) {
+                console.log('Viewer initialization error:', error);
+            }
+        }
+
+        // Viewer controls
+        function zoomIn() {
+            if (viewer) viewer.viewport.zoomBy(2);
+        }
+
+        function zoomOut() {
+            if (viewer) viewer.viewport.zoomBy(0.5);
+        }
+
+        function resetView() {
+            if (viewer) viewer.viewport.goHome();
+        }
+
+        function toggleFullscreen() {
+            if (viewer) viewer.setFullScreen(!viewer.isFullPage());
+        }
+
+        // Load different images
+        function loadImage(type) {
+            if (!viewer) initMainViewer();
+
+            const images = {
+                mars: 'MarsSurface.png',
+                moon: 'LunarSurface.png',
+                earth: 'EarthFromSpace.png',
+                nebula: 'CarinaNebula.png'
+            };
+
+            viewer.open({
+                type: 'image',
+                url: images[type],
+                buildPyramid: false
+            });
+        }
+
+        // Annotation functions
+        function enableAnnotation(mode) {
+            currentAnnotationMode = mode;
+            document.querySelectorAll('.annotation-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            if (mode === 'point') {
+                document.getElementById('openseadragon-viewer').style.cursor = 'crosshair';
+            } else if (mode === 'rectangle') {
+                document.getElementById('openseadragon-viewer').style.cursor = 'crosshair';
+            } else if (mode === 'label') {
+                document.getElementById('openseadragon-viewer').style.cursor = 'text';
+            }
+        }
+
+        function clearAnnotations() {
+            // Remove all overlays from OpenSeadragon
+            annotations.forEach(annotation => {
+                if (annotation.element) {
+                    viewer.removeOverlay(annotation.element);
+                }
+            });
+
+            annotations = [];
+            labelCounter = 0;
+            currentAnnotationMode = null;
+            rectangleStart = null;
+            currentRectangle = null;
+
+            // Reset cursor
+            document.getElementById('openseadragon-viewer').style.cursor = 'default';
+
+            // Clear active button state
+            document.querySelectorAll('.annotation-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Update label tracker
+            updateLabelTracker();
+        }
+
+        function updateLabelTracker() {
+            const labelList = document.getElementById('label-list');
+            const labels = annotations.filter(a => a.type === 'label');
+
+            if (labels.length === 0) {
+                labelList.innerHTML = '<p style="color: #aaa; font-size: 0.9em;">No labels added yet</p>';
+            } else {
+                labelList.innerHTML = labels.map((label, index) =>
+                    `<div class="label-item">${index + 1}. ${label.text}</div>`
+                ).join('');
+            }
+        }
+
+        function addPointMarker(viewportPoint) {
+            const marker = document.createElement('div');
+            marker.className = 'annotation-marker';
+            marker.textContent = '📍';
+            marker.style.position = 'absolute';
+
+            // Add as OpenSeadragon overlay - it will automatically follow zoom/pan
+            viewer.addOverlay({
+                element: marker,
+                location: viewportPoint,
+                placement: OpenSeadragon.Placement.CENTER
+            });
+
+            annotations.push({
+                type: 'point',
+                element: marker,
+                viewportPoint: viewportPoint
+            });
+        }
+
+        function addRectangle(rect) {
+            // Use the temporary rectangle if it exists, otherwise create new one
+            const rectangle = currentRectangle || document.createElement('div');
+            if (!currentRectangle) {
+                rectangle.className = 'annotation-rectangle';
+                // Add as OpenSeadragon overlay
+                viewer.addOverlay({
+                    element: rectangle,
+                    location: rect
+                });
+            }
+
+            annotations.push({
+                type: 'rectangle',
+                element: rectangle,
+                rect: rect
+            });
+        }
+
+        function addLabel(viewportPoint, text) {
+            const label = document.createElement('div');
+            label.className = 'annotation-label';
+            label.textContent = text;
+            label.style.position = 'absolute';
+
+            // Add as OpenSeadragon overlay
+            viewer.addOverlay({
+                element: label,
+                location: viewportPoint,
+                placement: OpenSeadragon.Placement.TOP_LEFT
+            });
+
+            annotations.push({
+                type: 'label',
+                element: label,
+                text: text,
+                viewportPoint: viewportPoint
+            });
+
+            updateLabelTracker();
+        }
+
+        // Comparison functions
+        function syncViewers() {
+            if (viewerA && viewerB) {
+                viewerA.addHandler('zoom', function() {
+                    viewerB.viewport.zoomTo(viewerA.viewport.getZoom());
+                });
+                viewerA.addHandler('pan', function() {
+                    viewerB.viewport.panTo(viewerA.viewport.getCenter());
+                });
+                alert('Viewers synchronized!');
+            }
+        }
+
+        function unsyncViewers() {
+            if (viewerA && viewerB) {
+                viewerA.removeAllHandlers('zoom');
+                viewerA.removeAllHandlers('pan');
+                alert('Viewers unsynchronized!');
+            }
+        }
+
+        function swapImages() {
+            if (viewerA && viewerB) {
+                const tempSource = viewerA.tileSources;
+                viewerA.open(viewerB.tileSources);
+                viewerB.open(tempSource);
+            }
+        }
+
+        // Upload custom image to comparison viewer
+        function uploadImageToViewer(viewerId, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Check if it's an image
+            if (!file.type.startsWith('image/')) {
+                alert('Please select a valid image file');
+                return;
+            }
+
+            // Create a URL for the uploaded file
+            const imageUrl = URL.createObjectURL(file);
+
+            // Load into the appropriate viewer
+            const viewer = viewerId === 'a' ? viewerA : viewerB;
+
+            if (!viewer) {
+                // Initialize the viewer if it doesn't exist yet
+                if (viewerId === 'a') {
+                    initComparisonViewers();
+                }
+            }
+
+            // Wait a moment for viewer to be ready, then load the image
+            setTimeout(() => {
+                const targetViewer = viewerId === 'a' ? viewerA : viewerB;
+                if (targetViewer) {
+                    targetViewer.open({
+                        type: 'image',
+                        url: imageUrl,
+                        buildPyramid: false
+                    });
+                }
+            }, 100);
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            console.log('NASA Image Explorer initialized!');
+        });
+    </script>
+</body>
+</html>
